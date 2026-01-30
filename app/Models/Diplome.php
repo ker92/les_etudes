@@ -2,19 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Diplome extends Model
 {
-    protected $fillable = ['nom'];
+    use HasFactory;
+    protected $fillable = ['nom', 'filiere_id'];
 
-    public function filieres()
+    public function filiere()
     {
-        return $this->belongsToMany(Filiere::class);
-    }
-
-    public function etudiants()
-    {
-        return $this->hasMany(Etudiant::class);
+        return $this->belongsTo(Filiere::class);
     }
 }

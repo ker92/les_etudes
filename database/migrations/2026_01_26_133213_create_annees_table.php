@@ -6,22 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('annees', function (Blueprint $table) {
             $table->id();
-            $table->string('annee');
+            $table->string('annee')->unique(); // évite les doublons
             $table->timestamps();
-
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('annees');

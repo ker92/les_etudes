@@ -3,47 +3,42 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Annee;
 use Illuminate\Http\Request;
 
 class AnneeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        return response()->json(Annee::all());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $annee = Annee::create($request->validate([
+            'annee' => 'required|string|max:255',
+        ]));
+
+        return response()->json($annee, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Annee $annee)
     {
-        //
+        return response()->json($annee);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Annee $annee)
     {
-        //
+        $annee->update($request->validate([
+            'annee' => 'required|string|max:255',
+        ]));
+
+        return response()->json($annee);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Annee $annee)
     {
-        //
+        $annee->delete();
+        return response()->json(null, 204);
     }
 }

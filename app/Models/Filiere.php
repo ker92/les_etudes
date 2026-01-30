@@ -7,10 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Filiere extends Model
 {
-    protected $fillable = ['nom'];
+    use HasFactory;
 
-    public function diplomes()
-    {
-        return $this->belongsToMany(Diplome::class);
-    }
+    protected $fillable = ['nom'];
 }
