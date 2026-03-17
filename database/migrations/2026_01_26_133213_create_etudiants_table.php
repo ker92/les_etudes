@@ -12,10 +12,14 @@ return new class extends Migration
             $table->id();
             $table->string('nom');
             $table->string('prenom');
+            $table->string('identifiant_unique')->unique();
 
-            // clé étrangère vers filieres
             $table->foreignId('filiere_id')
                 ->constrained('filieres')
+                ->cascadeOnDelete();
+
+            $table->foreignId('diplome_id')
+                ->constrained('diplomes')
                 ->cascadeOnDelete();
 
             $table->timestamps();

@@ -4,29 +4,138 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Resultat;
+use App\Models\Etudiant;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class ResultatController extends Controller
 {
+    // GET /api/resultats
     public function index()
     {
-        return response()->json(Resultat::with(['etudiant', 'diplome', 'annee'])->get());
+        return response()->json(
+            Resultat::with(['etudiant', 'diplome', 'annee'])->get()
+        );
     }
 
+    // GET /api/resultats/etudiants?diplome_id=X&annee_id=Y
+    // Retourne les étudiants d'un diplôme/année avec leur résultat
+    public function etudiantsParDiplomeAnnee(Request $request)
+    {
+        $request->validate([
+            'diplome_id' => 'required|exists:diplomes,id',
+            'annee_id'   => 'required|exists:annees,id',
+        ]);
+
+        $etudiants = Etudiant::where('diplome_id', $request->diplome_id)
+            ->with(['filiere', 'diplome', 'resultats' => function ($q) use ($request) {
+                $q->where('diplome_id', $request->diplome_id)
+                    ->where('annee_id', $request->annee_id);
+            }])
+            ->get()
+            ->map(function ($etudiant) {
+                return [
+                    'id'                => $etudiant->id,
+                    'nom'               => $etudiant->nom,
+                    'prenom'            => $etudiant->prenom,
+                    'identifiant_unique' => $etudiant->identifiant_unique,
+                    'filiere'           => $etudiant->filiere,
+                    'diplome'           => $etudiant->diplome,
+                    'resultat'          => $etudiant->resultats->first(),
+                ];
+            });
+
+        return response()->json($etudiants);
+    }
+
+    // POST /api/resultats — saisir ou mettre à jour un résultat
     public function store(Request $request)
     {
-        $resultat = Resultat::create($request->validate([
-            'etudiant_id' => 'required|exists:etudiants,id',
-            'diplome_id' => 'required|exists:diplomes,id',
-            'annee_id' => 'required|exists:annees,id',
-            'statut_resultat' => 'nullable|in:admis,refuse,rattrapage',
-            'est_valide' => 'boolean',
-            'est_publie' => 'boolean',
-            'date_validation' => 'nullable|date',
-            'date_publication' => 'nullable|date',
-        ]));
+        $request->validate([
+            'etudiant_id'    => 'required|exists:etudiants,id',
+            'diplome_id'     => 'required|exists:diplomes,id',
+            'annee_id'       => 'required|exists:annees,id',
+            'statut_resultat'=> 'required|in:admis,refuse,rattrapage',
+        ]);
+
+        // updateOrCreate pour éviter les doublons
+        $resultat = Resultat::updateOrCreate(
+            [
+                'etudiant_id' => $request->etudiant_id,
+                'diplome_id'  => $request->diplome_id,
+                'annee_id'    => $request->annee_id,
+            ],
+            [
+                'statut_resultat' => $request->statut_resultat,
+            ]
+        );
 
         return response()->json($resultat, 201);
+    }
+
+    // POST /api/resultats/valider
+    public function valider(Request $request)
+    {
+        $request->validate([
+            'diplome_id' => 'required|exists:diplomes,id',
+            'annee_id'   => 'required|exists:annees,id',
+        ]);
+
+        Resultat::where('diplome_id', $request->diplome_id)
+            ->where('annee_id', $request->annee_id)
+            ->update([
+                'est_valide'      => true,
+                'date_validation' => Carbon::now(),
+            ]);
+
+        return response()->json(['message' => 'Résultats validés avec succès.']);
+    }
+
+    // POST /api/resultats/publier
+    public function publier(Request $request)
+    {
+        $request->validate([
+            'diplome_id' => 'required|exists:diplomes,id',
+            'annee_id'   => 'required|exists:annees,id',
+        ]);
+
+        Resultat::where('diplome_id', $request->diplome_id)
+            ->where('annee_id', $request->annee_id)
+            ->where('est_valide', true)
+            ->update([
+                'est_publie'       => true,
+                'date_publication' => Carbon::now(),
+            ]);
+
+        return response()->json(['message' => 'Résultats publiés avec succès.']);
+    }
+
+    // GET /api/resultats/taux-reussite?diplome_id=X&annee_id=Y
+    public function tauxReussite(Request $request)
+    {
+        $request->validate([
+            'diplome_id' => 'required|exists:diplomes,id',
+            'annee_id'   => 'required|exists:annees,id',
+        ]);
+
+        $resultats = Resultat::where('diplome_id', $request->diplome_id)
+            ->where('annee_id', $request->annee_id)
+            ->get();
+
+        $total  = $resultats->count();
+        $admis  = $resultats->where('statut_resultat', 'admis')->count();
+        $taux   = $total > 0 ? round(($admis / $total) * 100, 2) : 0;
+
+        $diplome = \App\Models\Diplome::find($request->diplome_id);
+        $annee   = \App\Models\Annee::find($request->annee_id);
+
+        return response()->json([
+            'diplome'        => $diplome->nom,
+            'annee'          => $annee->annee,
+            'total'          => $total,
+            'admis'          => $admis,
+            'taux_reussite'  => $taux,
+        ]);
     }
 
     public function show(Resultat $resultat)
@@ -36,16 +145,11 @@ class ResultatController extends Controller
 
     public function update(Request $request, Resultat $resultat)
     {
-        $resultat->update($request->validate([
-            'etudiant_id' => 'required|exists:etudiants,id',
-            'diplome_id' => 'required|exists:diplomes,id',
-            'annee_id' => 'required|exists:annees,id',
-            'statut_resultat' => 'nullable|in:admis,refuse,rattrapage',
-            'est_valide' => 'boolean',
-            'est_publie' => 'boolean',
-            'date_validation' => 'nullable|date',
-            'date_publication' => 'nullable|date',
-        ]));
+        $request->validate([
+            'statut_resultat' => 'required|in:admis,refuse,rattrapage',
+        ]);
+
+        $resultat->update($request->only(['statut_resultat']));
 
         return response()->json($resultat);
     }
