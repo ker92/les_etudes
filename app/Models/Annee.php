@@ -11,13 +11,11 @@ class Annee extends Model
 
     protected $fillable = ['annee'];
 
-    // Une année peut avoir plusieurs étudiants
     public function etudiants()
     {
         return $this->hasMany(Etudiant::class);
     }
 
-    // Une année peut avoir plusieurs résultats
     public function resultats()
     {
         return $this->hasMany(Resultat::class);

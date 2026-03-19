@@ -12,20 +12,13 @@ use Illuminate\Http\Request;
 
 class PublicController extends Controller
 {
-    /**
-     * GET /api/public/filieres
-     * Retourne toutes les filières avec leurs diplômes
-     */
+
     public function filieres()
     {
         $filieres = Filiere::with('diplomes')->get();
         return response()->json($filieres);
     }
 
-    /**
-     * GET /api/public/stats
-     * Retourne les statistiques globales pour la page d'accueil
-     */
     public function stats()
     {
         return response()->json([
@@ -35,14 +28,9 @@ class PublicController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/public/taux-reussite?diplome_id=X&annee_id=Y (optionnel)
-     * Sans paramètres : retourne tous les taux publiés (pour la page d'accueil)
-     * Avec paramètres  : retourne le taux d'un diplôme/année précis
-     */
     public function tauxReussite(Request $request)
     {
-        // Avec paramètres → taux d'une session précise
+
         if ($request->has('diplome_id') && $request->has('annee_id')) {
             $request->validate([
                 'diplome_id' => 'required|exists:diplomes,id',
@@ -74,7 +62,6 @@ class PublicController extends Controller
             ]);
         }
 
-        // Sans paramètres → tous les taux publiés (page d'accueil)
         $resultatsGroupes = Resultat::where('est_publie', true)
             ->with(['diplome', 'annee'])
             ->get()
@@ -99,10 +86,6 @@ class PublicController extends Controller
         return response()->json($taux);
     }
 
-    /**
-     * GET /api/public/resultat?identifiant=XX&diplome_id=X&annee_id=Y
-     * Recherche le résultat d'un étudiant par son identifiant unique (ou nom/prénom)
-     */
     public function resultat(Request $request)
     {
         $request->validate([
@@ -127,7 +110,6 @@ class PublicController extends Controller
             return response()->json(['message' => 'Étudiant introuvable.'], 404);
         }
 
-        // Récupère le résultat publié
         $resultat = Resultat::where('etudiant_id', $etudiant->id)
             ->where('diplome_id', $request->diplome_id)
             ->where('annee_id',   $request->annee_id)

@@ -10,16 +10,12 @@ use Carbon\Carbon;
 
 class ResultatController extends Controller
 {
-    // GET /api/resultats
     public function index()
     {
         return response()->json(
             Resultat::with(['etudiant', 'diplome', 'annee'])->get()
         );
     }
-
-    // GET /api/resultats/etudiants?diplome_id=X&annee_id=Y
-    // Retourne les étudiants d'un diplôme/année avec leur résultat
     public function etudiantsParDiplomeAnnee(Request $request)
     {
         $request->validate([
@@ -48,7 +44,6 @@ class ResultatController extends Controller
         return response()->json($etudiants);
     }
 
-    // POST /api/resultats — saisir ou mettre à jour un résultat
     public function store(Request $request)
     {
         $request->validate([
@@ -58,7 +53,6 @@ class ResultatController extends Controller
             'statut_resultat'=> 'required|in:admis,refuse,rattrapage',
         ]);
 
-        // updateOrCreate pour éviter les doublons
         $resultat = Resultat::updateOrCreate(
             [
                 'etudiant_id' => $request->etudiant_id,
@@ -73,7 +67,6 @@ class ResultatController extends Controller
         return response()->json($resultat, 201);
     }
 
-    // POST /api/resultats/valider
     public function valider(Request $request)
     {
         $request->validate([
@@ -110,7 +103,6 @@ class ResultatController extends Controller
         return response()->json(['message' => 'Résultats publiés avec succès.']);
     }
 
-    // GET /api/resultats/taux-reussite?diplome_id=X&annee_id=Y
     public function tauxReussite(Request $request)
     {
         $request->validate([
